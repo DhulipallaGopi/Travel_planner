@@ -7,20 +7,26 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 
-class PlannerState(TypedDict):
-    messages: Annotated[List[HumanMessage | AIMessage], "The messages in the conversation"]
-    city: str
-    interests: List[str]
-    itinerary: str
-groq_api_key=load_dotenv()
-# Define the LLM
+# Load environment variables
+load_dotenv()
 groq_api_key = os.getenv("GROQ_API_KEY")
+
+if not groq_api_key:
+    raise ValueError("GROQ_API_KEY is missing. Please set it in your environment or .env file.")
+
+# Define the LLM
 llm = ChatGroq(
     temperature=0,
     groq_api_key=groq_api_key,
     model_name="llama-3.3-70b-versatile"
 )
 
+# Define the Planner State
+class PlannerState(TypedDict):
+    messages: Annotated[List[HumanMessage | AIMessage], "The messages in the conversation"]
+    city: str
+    interests: List[str]
+    itinerary: str
 
 # Define the itinerary prompt
 itinerary_prompt = ChatPromptTemplate.from_messages([
@@ -28,6 +34,7 @@ itinerary_prompt = ChatPromptTemplate.from_messages([
     ("human", "Create an itinerary for my day trip."),
 ])
 
+# Function to process city input
 def input_city(city: str, state: PlannerState) -> PlannerState:
     return {
         **state,
@@ -35,6 +42,7 @@ def input_city(city: str, state: PlannerState) -> PlannerState:
         "messages": state['messages'] + [HumanMessage(content=city)],
     }
 
+# Function to process interests input
 def input_interests(interests: str, state: PlannerState) -> PlannerState:
     return {
         **state,
@@ -42,13 +50,14 @@ def input_interests(interests: str, state: PlannerState) -> PlannerState:
         "messages": state['messages'] + [HumanMessage(content=interests)],
     }
 
-def create_itinerary(state: PlannerState) -> str:
+# Function to generate the travel plan
+def create_plan(state: PlannerState) -> str:
     response = llm.invoke(itinerary_prompt.format_messages(city=state['city'], interests=", ".join(state['interests'])))
     state["itinerary"] = response.content
     state["messages"] += [AIMessage(content=response.content)]
     return response.content
 
-# Define the Gradio application
+# Define the Gradio function
 def travel_planner(city: str, interests: str):
     # Initialize state
     state = {
@@ -58,12 +67,12 @@ def travel_planner(city: str, interests: str):
         "itinerary": "",
     }
 
-    # Process the city and interests inputs
+    # Process inputs
     state = input_city(city, state)
     state = input_interests(interests, state)
 
-    # Generate the itinerary
-    itinerary = create_itinerary(state)
+    # Generate travel plan
+    itinerary = create_plan(state)
 
     return itinerary
 
@@ -72,13 +81,14 @@ interface = gr.Interface(
     fn=travel_planner,
     theme='Yntec/HaleyCH_Theme_Orange_Green',
     inputs=[
-        gr.Textbox(label="Enter the city for your day trip"),
+        gr.Textbox(label="Enter the city for your trip"),
         gr.Textbox(label="Enter your interests (comma-separated)"),
     ],
-    outputs=gr.Textbox(label="Generated Itinerary"),
-    title="Travel Itinerary Planner",
-    description="Enter a city and your interests to generate a personalized day trip itinerary."
+    outputs=gr.Textbox(label="Generated Plan"),
+    title="AI Travel Planner",
+    description="Enter a city and your interests to generate a personalized trip plan."
 )
 
 # Launch the Gradio application
-interface.launch()
+if __name__ == "__main__":
+    interface.launch()
