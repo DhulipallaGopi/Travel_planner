@@ -1,5 +1,6 @@
 import gradio as gr
 import os
+from dotenv import load_dotenv
 from typing import TypedDict, Annotated, List
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import HumanMessage, AIMessage
@@ -11,7 +12,7 @@ class PlannerState(TypedDict):
     city: str
     interests: List[str]
     itinerary: str
-
+groq_api_key=load_dotenv()
 # Define the LLM
 groq_api_key = os.getenv("GROQ_API_KEY")
 llm = ChatGroq(
