@@ -1,4 +1,5 @@
 import gradio as gr
+import os
 from typing import TypedDict, Annotated, List
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import HumanMessage, AIMessage
@@ -12,11 +13,13 @@ class PlannerState(TypedDict):
     itinerary: str
 
 # Define the LLM
+groq_api_key = os.getenv("GROQ_API_KEY")
 llm = ChatGroq(
     temperature=0,
-    groq_api_key="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",
+    groq_api_key=groq_api_key,
     model_name="llama-3.3-70b-versatile"
 )
+
 
 # Define the itinerary prompt
 itinerary_prompt = ChatPromptTemplate.from_messages([
